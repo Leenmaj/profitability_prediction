@@ -14,13 +14,7 @@ def preprocess_data(file_path):
     # Handle missing values (drop rows with missing data)
     df = df.dropna()
 
-    # Encode categorical columns
-    categorical_cols = df.select_dtypes(include=['object']).columns
-    label_encoders = {}
-    for col in categorical_cols:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col])
-        label_encoders[col] = le
+    #removed encoding categorial columns 
 
     # Separate features and labels
     X = df.drop("target", axis=1)
@@ -58,13 +52,7 @@ def preprocess_data_with_smote(file_path):
     # Handle missing values (drop rows with missing data)
     df = df.dropna()
 
-    # Encode categorical columns
-    categorical_cols = df.select_dtypes(include=['object']).columns
-    label_encoders = {}
-    for col in categorical_cols:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col])
-        label_encoders[col] = le
+
 
     # Separate features and labels
     X = df.drop("target", axis=1).values
@@ -87,3 +75,46 @@ def preprocess_data_with_smote(file_path):
 
     return X, y
 
+
+def preprocess_autoencoder_data(file_path):
+    df = pd.read_csv(file_path)
+    df = df.dropna()
+
+    #separate features (but not labels)
+    X = df.drop("target", axis=1)
+
+    # Normalize features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+
+    return X
+
+
+
+def preprocess_autoencoder_data_with_smote(file_path, test_size=0.2, random_state=42):
+  
+
+    
+    df = pd.read_csv(file_path)
+    df = df.dropna()  
+
+    
+    X = df.drop(columns=["target"])  
+    y = df["target"]  
+
+    #split data BEFORE applying SMOTE
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
+
+    #fit the scaler ONLY on original X_train (before SMOTE)
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+
+    #apply SMOTE to X_train (ONLY training data)
+    smote = SMOTE(sampling_strategy='auto', random_state=random_state)
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    #transform both X_train_resampled and X_test using the same scaler
+    X_train_resampled = scaler.transform(X_train_resampled)
+    X_test = scaler.transform(X_test)
+
+    return X_train_resampled, X_test, y_train_resampled, y_test
